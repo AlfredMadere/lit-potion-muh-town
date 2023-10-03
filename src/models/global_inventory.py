@@ -161,7 +161,7 @@ class GlobalInventory:
             for potion in potions_delivered:
                 if(potion.potion_type == [100, 0, 0, 0]): #TODO: are the potion types formatted like this or adding up to 100?
                     #update the specific row in the table self.id
-                    sql_to_execute = text(f"UPDATE {GlobalInventory.table_name} SET num_red_potions = num_red_potions + :num_delivered, num_red_ml = num_red_ml - used_red_ml WHERE id = :id")
+                    sql_to_execute = text(f"UPDATE {GlobalInventory.table_name} SET num_red_potions = num_red_potions + :num_delivered, num_red_ml = num_red_ml - :used_red_ml WHERE id = :id")
                     with db.engine.begin() as connection:
                         connection.execute(sql_to_execute, {"num_delivered": potion.quantity, "id": self.id, "used_red_ml": potion.quantity*100}) #TODO: make sure this is correct
             return "OK"
