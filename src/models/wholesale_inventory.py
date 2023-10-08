@@ -27,20 +27,30 @@ class WholesaleInventory:
   @staticmethod
   def get_bottler_plan():
     try:
-      sql_to_execute = text(f"SELECT id, sku, type, num_ml FROM {WholesaleInventory.table_name}")
-      with db.engine.begin() as connection:
-        result = connection.execute(sql_to_execute)
-        rows = result.fetchall()
-        bottler_plan = []
-        for row in rows:
-          if(row[3] >= 100):
-            max_potions = math.floor(row[3] / 100)
-            adjusted_potion_type = [x*100 for x in row[2]]
-            bottler_plan.append({
-             "potion_type": adjusted_potion_type,
-             "quantity": max_potions 
-            }) 
-        return bottler_plan
+      red_stock = WholesaleInventory.get_stock([1, 0, 0, 0])
+      green_stock = WholesaleInventory.get_stock([0, 1, 0, 0])
+      blue_stock = WholesaleInventory.get_stock([0, 0, 1, 0])
+      bottler_plan = []
+      max_red_potions = math.floor(red_stock / 100)
+      max_green_potions = math.floor(green_stock / 100)
+      max_blue_potions = math.floor(blue_stock / 100)
+
+      if (max_red_potions > 0): 
+        bottler_plan.append({
+        "potion_type": [100, 0, 0, 0],
+        "quantity": min(max_red_potions, 5)
+        }) 
+      if (max_green_potions > 0):
+        bottler_plan.append({
+        "potion_type": [0, 100, 0, 0],
+        "quantity": min(max_green_potions, 5)
+        })
+      if (max_blue_potions > 0):
+        bottler_plan.append({
+        "potion_type": [0, 0, 100, 0],
+        "quantity": min(max_blue_potions, 5)
+        })
+      return bottler_plan
     except Exception as error:
         print("unable to get bottler plan: ", error)
         return "ERROR"
@@ -53,7 +63,7 @@ class WholesaleInventory:
     available_balance = Transaction.get_current_balance()
     current_wholesale_materials = {}
     for catalog_item in wholesale_catalog:
-      hashable_potion_type = ",".join(map(str, catalog_item.potion_type))
+      hashable_potion_type = "-".join(map(str, catalog_item.potion_type))
       potion_stock = WholesaleInventory.get_stock(catalog_item.potion_type)
       current_wholesale_materials[hashable_potion_type] = potion_stock
       if (current_wholesale_materials[hashable_potion_type] < 100 and catalog_item.price <= available_balance ):
@@ -139,17 +149,24 @@ class WholesaleInventory:
                 #construct a 
                 barrel_type_to_subtract_from = [0, 0, 0, 0]
                 barrel_type_to_subtract_from[i] = 1 if ml != 0 else 0
+                potion_type_stock = WholesaleInventory.get_stock(barrel_type_to_subtract_from) 
+                if (potion_type_stock < quantity * ml):
+                    raise Exception(f"Not enough {barrel_type_to_subtract_from} ml potion in inventory for {quantity} potions of type {potion_type}")
                 sql_to_execute = text(f"SELECT id, num_ml FROM {WholesaleInventory.table_name} WHERE type = :type")
                 with db.engine.begin() as connection:
-                    result = connection.execute(sql_to_execute, {"type": barrel_type_to_subtract_from}).fetchone()
-                    if result is None:
-                        raise Exception(f"No potion found with type {barrel_type_to_subtract_from}")
-                    # Subtract the quantity * the number of ml from the num_ml column
-                    num_ml = result[1]
-                    if num_ml < quantity * ml:
-                        raise Exception(f"Not enough {barrel_type_to_subtract_from} ml potion in inventory for {quantity} potions of type {potion_type}")
-                    sql_to_execute = text(f"UPDATE {WholesaleInventory.table_name} SET num_ml = num_ml - :num_ml WHERE id = :id")
-                    connection.execute(sql_to_execute, {"num_ml": quantity * ml, "id": result[0]})
+                    result = connection.execute(sql_to_execute, {"type": barrel_type_to_subtract_from}).fetchall()
+                    amount_left_to_subtract = quantity * ml
+                    for row in result:
+                      if row[1] >= quantity * ml:
+                        sql_to_execute = text(f"UPDATE {WholesaleInventory.table_name} SET num_ml = num_ml - :num_ml WHERE id = :id")
+                        connection.execute(sql_to_execute, {"num_ml": amount_left_to_subtract, "id": row[0]})
+                        amount_left_to_subtract = 0
+                        break
+                      sql_to_execute = text(f"UPDATE {WholesaleInventory.table_name} SET num_ml = 0 WHERE id = :id")
+                      connection.execute(sql_to_execute, {"id": row[0]})
+                      amount_left_to_subtract -= row[1]
+                    if amount_left_to_subtract > 0:
+                      raise Exception(f"This error should not be thrown unless there is a race condition causing wholesale inventory to change in the middle of this call")
         return "OK"
     except Exception as error:
         print("unable to use potion inventory: ", error)
