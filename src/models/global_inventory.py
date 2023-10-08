@@ -110,7 +110,8 @@ class GlobalInventory:
     def get_catalog(self):
 
         catalog_array = []
-        if(self.num_red_potions > 0):
+        #forcing empty catalog to freeze shop
+        if(self.num_red_potions > 0 and False):
             catalog_array.append({
                 "sku": GlobalInventory.red_potion_sku,
                 "name": "red potion",
@@ -137,7 +138,8 @@ class GlobalInventory:
 
 
     def get_wholesale_plan(self, wholesale_catalog: list[Barrel]):
-        if(len(wholesale_catalog) == 0):
+        #forcing no purchase of barrels to freeze shop
+        if(len(wholesale_catalog) == 0 or True):
             return []
         
         buy_one_barrel = False
@@ -161,7 +163,7 @@ class GlobalInventory:
             for potion in potions_delivered:
                 if(potion.potion_type == [100, 0, 0, 0]): #TODO: are the potion types formatted like this or adding up to 100?
                     #update the specific row in the table self.id
-                    sql_to_execute = text(f"UPDATE {GlobalInventory.table_name} SET num_red_potions = num_red_potions + :num_delivered, num_red_ml = num_red_ml - used_red_ml WHERE id = :id")
+                    sql_to_execute = text(f"UPDATE {GlobalInventory.table_name} SET num_red_potions = num_red_potions + :num_delivered, num_red_ml = num_red_ml - :used_red_ml WHERE id = :id")
                     with db.engine.begin() as connection:
                         connection.execute(sql_to_execute, {"num_delivered": potion.quantity, "id": self.id, "used_red_ml": potion.quantity*100}) #TODO: make sure this is correct
             return "OK"
