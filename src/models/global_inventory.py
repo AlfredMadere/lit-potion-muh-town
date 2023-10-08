@@ -88,7 +88,8 @@ class GlobalInventory:
     def get_catalog(self):
 
         catalog_array = []
-        if(self.num_red_potions > 0):
+        #forcing empty catalog to freeze shop
+        if(self.num_red_potions > 0 and False):
             catalog_array.append({
                 "sku": GlobalInventory.red_potion_sku,
                 "name": "red potion",
@@ -115,7 +116,8 @@ class GlobalInventory:
 
 
     def get_wholesale_plan(self, wholesale_catalog: list[Barrel]):
-        if(len(wholesale_catalog) == 0):
+        #forcing no purchase of barrels to freeze shop
+        if(len(wholesale_catalog) == 0 or True):
             return []
         
         buy_one_barrel = False
