@@ -79,7 +79,7 @@ class WholesaleInventory:
   @staticmethod
   def get_stock(potion_type: list[int]):
     try:
-      sql_to_execute = text(f"SELECT num_ml FROM {WholesaleInventory.table_name} WHERE type = :type")
+      sql_to_execute = text(f"SELECT num_ml_delta FROM {WholesaleInventory.table_name} WHERE type = :type")
       with db.engine.begin() as connection:
         result = connection.execute(sql_to_execute, {"type": potion_type})
         rows = result.fetchall()
@@ -89,7 +89,7 @@ class WholesaleInventory:
         return total_ml
     except Exception as error:
         print("unable to get potion stock: ", error)
-        return "ERROR"
+        raise Exception("ERROR: unable to get potion stock", error) 
     
   @staticmethod
   def accept_barrels_delivery (barrels_delivered: list[Barrel]):
@@ -112,22 +112,14 @@ class WholesaleInventory:
         return "ERROR"
     
   def add_to_inventory(barrel: Barrel):
-    #FIXME: figure out how the fuck to do error handling in python, this thing swallows hella errors
-    #FIXME: sku means nothing here, its really most recent sku, should prob be generating sku from type
     try:
-      sql_to_execute = text(f"SELECT * FROM {WholesaleInventory.table_name} WHERE sku = :sku")
       with db.engine.begin() as connection:
-        result = connection.execute(sql_to_execute, {"sku": barrel.sku}).fetchone()
-        if(result == None):
-          sql_to_execute = text(f"INSERT INTO {WholesaleInventory.table_name} (sku, type, num_ml) VALUES (:sku, :type, :num_ml)")
-          connection.execute(sql_to_execute, {"sku": barrel.sku, "type": barrel.potion_type, "num_ml": barrel.quantity * barrel.ml_per_barrel})
-        else:
-          sql_to_execute = text(f"UPDATE {WholesaleInventory.table_name} SET num_ml = num_ml + :num_ml WHERE sku = :sku")
-          connection.execute(sql_to_execute, {"sku": barrel.sku, "num_ml": barrel.quantity * barrel.ml_per_barrel})
+        sql_to_execute = text(f"INSERT INTO {WholesaleInventory.table_name} (sku, type, num_ml_delta) VALUES (:sku, :type, :num_ml_delta)")
+        connection.execute(sql_to_execute, {"sku": barrel.sku, "type": barrel.potion_type, "num_ml_delta": barrel.quantity * barrel.ml_per_barrel})
       return 'OK'
     except Exception as error:
         print("unable to add to inventory: ", error)
-        return "ERROR"
+        raise Exception("ERROR: unable to add to inventory", error)
     
   
   @staticmethod
@@ -172,6 +164,7 @@ class WholesaleInventory:
     except Exception as error:
         print("unable to use potion inventory: ", error)
         raise
+
 
  
   
