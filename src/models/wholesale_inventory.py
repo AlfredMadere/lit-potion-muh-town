@@ -38,17 +38,17 @@ class WholesaleInventory:
       if (max_red_potions > 0): 
         bottler_plan.append({
         "potion_type": [100, 0, 0, 0],
-        "quantity": min(max_red_potions, 5)
+        "quantity": min(max_red_potions, 1)
         }) 
       if (max_green_potions > 0):
         bottler_plan.append({
         "potion_type": [0, 100, 0, 0],
-        "quantity": min(max_green_potions, 5)
+        "quantity": min(max_green_potions, 1)
         })
       if (max_blue_potions > 0):
         bottler_plan.append({
         "potion_type": [0, 0, 100, 0],
-        "quantity": min(max_blue_potions, 5)
+        "quantity": min(max_blue_potions, 1)
         })
       return bottler_plan
     except Exception as error:
