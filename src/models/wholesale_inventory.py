@@ -63,7 +63,7 @@ class WholesaleInventory:
     available_balance = Transaction.get_current_balance()
     current_wholesale_materials = {}
     for catalog_item in wholesale_catalog:
-      hashable_potion_type = "-".join(map(str, catalog_item.potion_type))
+      hashable_potion_type = "_".join(map(str, catalog_item.potion_type))
       potion_stock = WholesaleInventory.get_stock(catalog_item.potion_type)
       current_wholesale_materials[hashable_potion_type] = potion_stock
       if (current_wholesale_materials[hashable_potion_type] < 100 and catalog_item.price <= available_balance ):
