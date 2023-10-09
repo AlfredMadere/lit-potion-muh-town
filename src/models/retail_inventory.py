@@ -80,7 +80,7 @@ class RetailInventory:
           result = connection.execute(sql_to_execute, {"type": json.dumps(potion.potion_type)})
           row = result.fetchone()
           if row is None:
-            potion_sku = "-".join(str(x) for x in potion.potion_type)
+            potion_sku = "_".join(str(x) for x in potion.potion_type)
             sql_to_execute = text(f"INSERT INTO {RetailInventory.table_name} (sku, name, type, quantity, price) VALUES (:sku, :name, :type, :quantity, :price)")
             with db.engine.begin() as connection:
               connection.execute(sql_to_execute, {"sku": potion_sku, "name": potion_sku, "type": json.dumps(potion.potion_type), "quantity": potion.quantity, "price": RetailInventory.potion_price})
