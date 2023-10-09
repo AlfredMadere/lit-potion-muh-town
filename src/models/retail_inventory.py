@@ -23,6 +23,12 @@ class RetailInventory:
     self.name = name
 
 
+  #11900 red ml
+  #1100 green ml
+  #1100 blue ml
+  #10000 dark ml
+
+
   @staticmethod
   def get_inventory():
     #get all the rows from the catalog table and return them as an array of objects
