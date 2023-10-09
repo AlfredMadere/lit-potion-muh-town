@@ -66,7 +66,8 @@ class WholesaleInventory:
       hashable_potion_type = "_".join(map(str, catalog_item.potion_type))
       potion_stock = WholesaleInventory.get_stock(catalog_item.potion_type)
       current_wholesale_materials[hashable_potion_type] = potion_stock
-      if (catalog_item.price <= available_balance and catalog_item.potion_type != [0, 0, 0, 1]):
+      #FIXME: this is a temporary hack to force purchase of only items i need
+      if (catalog_item.price <= available_balance and catalog_item.potion_type != [0, 0, 0, 1] and catalog_item.potion_type != [1, 0, 0, 0]):
         available_balance -= catalog_item.price
         current_wholesale_materials[hashable_potion_type] = catalog_item.ml_per_barrel
         wholesale_plan.append({
