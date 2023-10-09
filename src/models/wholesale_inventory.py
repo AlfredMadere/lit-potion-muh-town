@@ -5,6 +5,7 @@ import math
 from threading import Lock
 import json
 from pydantic import BaseModel
+from .potion_type import PotionType
 
 lock = Lock()
 
@@ -27,33 +28,25 @@ class WholesaleInventory:
   @staticmethod
   def get_bottler_plan():
     try:
-      red_stock = WholesaleInventory.get_stock([1, 0, 0, 0])
-      green_stock = WholesaleInventory.get_stock([0, 1, 0, 0])
-      blue_stock = WholesaleInventory.get_stock([0, 0, 1, 0])
-      bottler_plan = []
-      max_red_potions = math.floor(red_stock / 100)
-      max_green_potions = math.floor(green_stock / 100)
-      max_blue_potions = math.floor(blue_stock / 100)
+      
+      #TODO: get all potion types
+      #Filter by score where score represents basically how beneficial it is for me to sell that potion
+      #loop through that list in order and add to the bottler plan with a max of 5 of each type
+      #subtract from stock as i do this to make sure i don't use too much of any type
 
-      if (max_red_potions > 0): 
-        bottler_plan.append({
-        "potion_type": [100, 0, 0, 0],
-        "quantity": min(max_red_potions, 1)
-        }) 
-      if (max_green_potions > 0):
-        bottler_plan.append({
-        "potion_type": [0, 100, 0, 0],
-        "quantity": min(max_green_potions, 1)
-        })
-      if (max_blue_potions > 0):
-        bottler_plan.append({
-        "potion_type": [0, 0, 100, 0],
-        "quantity": min(max_blue_potions, 1)
-        })
+      potion_types = PotionType.get_all()
+      bottler_plan = []
+      for potion_type in potion_types:
+        max_mixable = WholesaleInventory.max_mixable(potion_type)
+        if (max_mixable > 0):
+          bottler_plan.append({
+            "potion_type": potion_type.type,
+            "quantity": min(max_mixable, 5)
+          })  
       return bottler_plan
     except Exception as error:
         print("unable to get bottler plan: ", error)
-        return "ERROR"
+        raise Exception("ERROR: unable to get bottler plan", error)
 
   @staticmethod
   def get_wholesale_plan(wholesale_catalog: list[Barrel]):
