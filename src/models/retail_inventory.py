@@ -13,7 +13,7 @@ class PotionInventory(BaseModel):
 
 class RetailInventory:
   table_name = "retail_inventory"
-  potion_price = 50 
+  potion_price = 30 
   def __init__(self, id, sku: str, name: str, type, quantity, price):
     self.id = id
     self.sku = sku
