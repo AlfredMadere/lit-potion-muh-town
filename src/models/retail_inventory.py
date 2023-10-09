@@ -13,7 +13,7 @@ class PotionInventory(BaseModel):
 
 class RetailInventory:
   table_name = "retail_inventory"
-  potion_price = 20 
+  potion_price = 50 
   def __init__(self, id, sku: str, name: str, type, quantity, price):
     self.id = id
     self.sku = sku
@@ -130,6 +130,7 @@ class RetailInventory:
           total_gold_paid = 0
           total_potions_bought = 0
           for item_sku, quantity in items.items():
+            #FIXME: hardcoded potion price
             total_gold_paid += RetailInventory.potion_price*quantity
             total_potions_bought += quantity
             sql_to_execute = text(f"UPDATE {RetailInventory.table_name} SET quantity = quantity - :quantity WHERE sku = :sku")
