@@ -5,6 +5,7 @@ from .wholesale_inventory import WholesaleInventory
 import json
 from pydantic import BaseModel
 from .transaction import Transaction
+from .potion_type import PotionType
 
 class PotionInventory(BaseModel):
     potion_type: list[int]
@@ -14,14 +15,11 @@ class PotionInventory(BaseModel):
 class RetailInventory:
   table_name = "retail_inventory"
   potion_price = 1 
-  def __init__(self, id, sku: str, name: str, type, quantity, price):
+  def __init__(self, id, potion_type_id: int, quantity_delta: int, price_delta: int ):
     self.id = id
-    self.sku = sku
-    self.type = type
-    self.quantity = quantity
-    self.price = price
-    self.name = name
-
+    self.potion_type_id = potion_type_id
+    self.quantity_delta = quantity_delta
+    self.price_delta = price_delta
 
   #11900 red ml
   #1100 green ml
@@ -30,18 +28,59 @@ class RetailInventory:
 
 
   @staticmethod
-  def get_inventory():
-    #get all the rows from the catalog table and return them as an array of objects
-    sql_to_execute = text(f"SELECT id, sku, name, type, quantity, price FROM retail_inventory")
+  def get_total_potions():
+    try:
+      total_retail_potions = 0
+      sql_to_execute = text(f"SELECT id, potion_type_id, quantity_delta, price_delta, FROM retail_inventory")
+      with db.engine.begin() as connection:
+        result = connection.execute(sql_to_execute)
+        rows = result.fetchall()
+        for row in rows:
+          total_retail_potions += row[2]
+      return total_retail_potions
+    except Exception as error:
+      print("unable to get total potions: ", error)
+      raise Exception("ERROR: unable to get total potions", error)
 
-    inventory: List[RetailInventory]= []
+  @staticmethod
+  def get_catalog():
+    # Get all the rows from the catalog table and return them as an array of objects
+    # Add up all the quantity and price_deltas for each potion_type_id
+    sql_to_execute = text("SELECT id, potion_type_id, quantity_delta, price_delta FROM retail_inventory")
+    inventory = []
     with db.engine.begin() as connection:
-      result = connection.execute(sql_to_execute)
-      rows = result.fetchall()
-      for row in rows:
-        inventory.append(RetailInventory(row[0], row[1], row[2], row[3], row[4], row[5]))
-    print("inventory: ", inventory)
+        result = connection.execute(sql_to_execute)
+        rows = result.fetchall()
+        potion_type_totals = {}
+        for row in rows:
+            potion_type_id = row[1]
+            quantity_delta = row[2]
+            price_delta = row[3]
+            if potion_type_id in potion_type_totals:
+                potion_type_totals[potion_type_id]['quantity'] += quantity_delta
+                potion_type_totals[potion_type_id]['price'] += price_delta
+            else:
+                potion_type_totals[potion_type_id] = {
+                    'quantity': quantity_delta,
+                    'price': price_delta
+                }
+
+        for potion_type_id, totals in potion_type_totals.items():
+            # Query potiontype table for the type name and sku
+            # Assuming you have a PotionType class with a get_potion_type function that retrieves the name and sku based on the potion_type_id
+            potion_type = PotionType.find(potion_type_id)
+            if totals['quantity'] == 0:
+                continue
+            inventory.append({
+                'sku': potion_type.sku,
+                'name': potion_type.name,
+                'quantity': totals['quantity'],
+                'price': totals['price'],
+                'potion_type': potion_type.type 
+            })
+
     return inventory
+  
 
 
   @staticmethod
@@ -147,6 +186,20 @@ class RetailInventory:
             raise Exception("Could not adjust inventory")
 
         return {"total_potions_bought": total_potions_bought, "total_gold_paid": total_gold_paid}
+  
+  @staticmethod
+  def create(potion_type_id: int, quantity_delta: int, price_delta: int):
+    try:
+      sql_to_execute = text(f"INSERT INTO {RetailInventory.table_name} (potion_type_id, quantity_delta, price_delta) VALUES (:potion_type_id, :quantity_delta, :price_delta) RETURNING id, potion_type_id, quantity_delta, price_delta")
+      with db.engine.begin() as connection:
+        result = connection.execute(sql_to_execute, {"potion_type_id": potion_type_id, "quantity_delta": quantity_delta, "price_delta": price_delta}) 
+        row = result.fetchone()
+        if row is None:
+          raise Exception("ERROR: unable to create retail inventory")
+        return RetailInventory(row[0], row[1], row[2], row[3]) 
+    except Exception as error:
+      print("unable to create retail inventory: ", error)
+      raise Exception("ERROR: unable to create retail inventory", error)
         
 
   

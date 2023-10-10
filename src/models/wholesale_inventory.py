@@ -28,25 +28,39 @@ class WholesaleInventory:
   @staticmethod
   def get_bottler_plan():
     try:
-      
-      #TODO: get all potion types
-      #Filter by score where score represents basically how beneficial it is for me to sell that potion
-      #loop through that list in order and add to the bottler plan with a max of 5 of each type
-      #subtract from stock as i do this to make sure i don't use too much of any type
-
       potion_types = PotionType.get_all()
       bottler_plan = []
+      available_red = WholesaleInventory.get_stock([1, 0, 0, 0])
+      available_green = WholesaleInventory.get_stock([0, 1, 0, 0])
+      available_blue = WholesaleInventory.get_stock([0, 0, 1, 0])
+      available_dark = WholesaleInventory.get_stock([0, 0, 0, 1])
       for potion_type in potion_types:
-        max_mixable = WholesaleInventory.max_mixable(potion_type)
+        max_mixable = WholesaleInventory.max_mixable(potion_type, [available_red, available_green, available_blue, available_dark])
+        print("max mixable: ", max_mixable)
         if (max_mixable > 0):
+          quantity = min(max_mixable, 5)
+          available_red -= quantity * potion_type.type[0]
+          available_green -= quantity * potion_type.type[1]
+          available_blue -= quantity * potion_type.type[2]
+          available_dark -= quantity * potion_type.type[3]
+
           bottler_plan.append({
             "potion_type": potion_type.type,
-            "quantity": min(max_mixable, 5)
+            "quantity": quantity 
           })  
       return bottler_plan
     except Exception as error:
         print("unable to get bottler plan: ", error)
         raise Exception("ERROR: unable to get bottler plan", error)
+  
+  @staticmethod
+  def max_mixable(potion_type: PotionType, available_ingredients: list[int]):
+    #Not allowing more than 20 potions to be mixed at a time no matter what
+    limit_array = [20]
+    for i, potion_amount in enumerate(potion_type.type):
+      if (potion_amount != 0):
+        limit_array.append(math.floor(available_ingredients[i] / potion_amount))
+    return min(limit_array)
 
   @staticmethod
   def get_wholesale_plan(wholesale_catalog: list[Barrel]):
@@ -59,8 +73,8 @@ class WholesaleInventory:
       hashable_potion_type = "_".join(map(str, catalog_item.potion_type))
       potion_stock = WholesaleInventory.get_stock(catalog_item.potion_type)
       current_wholesale_materials[hashable_potion_type] = potion_stock
-      #FIXME: this is a temporary hack to force purchase of only items i need
-      if (catalog_item.price <= available_balance and catalog_item.price <= 150 and catalog_item.potion_type != [0, 0, 0, 1] and catalog_item.potion_type != [1, 0, 0, 0]):
+      #TODO: implement more complex decision making here
+      if (catalog_item.price <= available_balance and catalog_item.price <= 150 and potion_stock < 2000):
         available_balance -= catalog_item.price
         current_wholesale_materials[hashable_potion_type] = catalog_item.ml_per_barrel
         wholesale_plan.append({
