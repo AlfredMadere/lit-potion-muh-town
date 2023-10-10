@@ -120,25 +120,44 @@ class RetailInventory:
     try:
       #check to see if there already exists an entry in the retailinventory with the same type as the potion delivered, if so then update the quantity, if not then create a new entry
       for potion in potions_delivered:
-        sql_to_execute = text(f"SELECT id, sku, name, type, quantity, price FROM {RetailInventory.table_name} WHERE type = :type")
         with db.engine.begin() as connection:
-          result = connection.execute(sql_to_execute, {"type": json.dumps(potion.potion_type)})
+          sql_to_execute = text(f'SELECT id FROM {"potion_type"} WHERE type = :potion_type')
+          result = connection.execute(sql_to_execute, {"potion_type": potion.potion_type})
           row = result.fetchone()
           if row is None:
-            potion_sku = "_".join(str(x) for x in potion.potion_type)
-            sql_to_execute = text(f"INSERT INTO {RetailInventory.table_name} (sku, name, type, quantity, price) VALUES (:sku, :name, :type, :quantity, :price)")
-            with db.engine.begin() as connection:
-              connection.execute(sql_to_execute, {"sku": potion_sku, "name": potion_sku, "type": json.dumps(potion.potion_type), "quantity": potion.quantity, "price": RetailInventory.potion_price})
-          else:
-            sql_to_execute = text(f"UPDATE {RetailInventory.table_name} SET quantity = quantity + :quantity WHERE type = :type")
-            with db.engine.begin() as connection:
-              connection.execute(sql_to_execute, {"quantity": potion.quantity, "type": json.dumps(potion.potion_type)})
-        WholesaleInventory.use_potion_inventory(potion.potion_type, potion.quantity)
+             raise Exception("Potion type in delivery not found")
+          potion_type_id = row[0]
+          potion_type = PotionType.find(potion_type_id)
+          #get current price for potion type
+          current_potion_price = RetailInventory.get_potion_price(potion_type_id)
+          price_delta = RetailInventory.potion_price  
+          if current_potion_price is not None:
+            price_delta = 0
+          sql_to_execute = text(f'INSERT INTO {RetailInventory.table_name} (potion_type_id, quantity_delta, price_delta) VALUES (:potion_type_id, :quantity_delta, :price_delta)') 
+          result = connection.execute(sql_to_execute, {"potion_type_id": potion_type_id, "quantity_delta": potion.quantity, "price_delta": price_delta}) 
+          WholesaleInventory.use_potion_inventory(potion_type.type, potion.quantity)
       return "OK"
     except Exception as error:
         print("unable to accept potion delivery things may be out of sync due to no roleback, check logs ", error)
         raise Exception("ERROR: unable to accept potion delivery things may be out of sync due to no roleback, check logs", error)
-  
+  @staticmethod
+  def get_potion_price(potion_type_id: int):
+    try:
+      sql_to_execute = text(f"SELECT price_delta FROM {RetailInventory.table_name} WHERE potion_type_id = :potion_type_id")  
+      current_potion_price = None
+      with db.engine.begin() as connection:
+        result = connection.execute(sql_to_execute, {"potion_type_id": potion_type_id})
+        rows = result.fetchall()
+        for row in rows:
+          if current_potion_price is None:
+            current_potion_price = row[0]
+          else:
+            current_potion_price += row[0]
+      return current_potion_price
+    except Exception as error:
+      print("unable to get potion price: ", error)
+      raise Exception("ERROR: unable to get potion price", error) 
+
 
   @staticmethod
   def items_available(items: dict[str, int]):

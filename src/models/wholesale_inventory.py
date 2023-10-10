@@ -151,21 +151,9 @@ class WholesaleInventory:
                 potion_type_stock = WholesaleInventory.get_stock(barrel_type_to_subtract_from) 
                 if (potion_type_stock < quantity * ml):
                     raise Exception(f"Not enough {barrel_type_to_subtract_from} ml potion in inventory for {quantity} potions of type {potion_type}")
-                sql_to_execute = text(f"SELECT id, num_ml FROM {WholesaleInventory.table_name} WHERE type = :type")
+                sql_to_execute = text(f'INSERT INTO {WholesaleInventory.table_name} (sku, type, num_ml_delta) VALUES (:sku, :type, :num_ml_delta) RETURNING id, sku, type, num_ml_delta')
                 with db.engine.begin() as connection:
-                    result = connection.execute(sql_to_execute, {"type": barrel_type_to_subtract_from}).fetchall()
-                    amount_left_to_subtract = quantity * ml
-                    for row in result:
-                      if row[1] >= quantity * ml:
-                        sql_to_execute = text(f"UPDATE {WholesaleInventory.table_name} SET num_ml = num_ml - :num_ml WHERE id = :id")
-                        connection.execute(sql_to_execute, {"num_ml": amount_left_to_subtract, "id": row[0]})
-                        amount_left_to_subtract = 0
-                        break
-                      sql_to_execute = text(f"UPDATE {WholesaleInventory.table_name} SET num_ml = 0 WHERE id = :id")
-                      connection.execute(sql_to_execute, {"id": row[0]})
-                      amount_left_to_subtract -= row[1]
-                    if amount_left_to_subtract > 0:
-                      raise Exception(f"This error should not be thrown unless there is a race condition causing wholesale inventory to change in the middle of this call")
+                    result = connection.execute(sql_to_execute, {"sku": "MIXING", "type": barrel_type_to_subtract_from, "num_ml_delta": quantity * ml * -1})
         return "OK"
     except Exception as error:
         print("unable to use potion inventory: ", error)
