@@ -13,7 +13,5 @@ def get_catalog():
     Each unique item combination must have only a single price.
     """
     # Can return a max of 20 items.
-    inventory = RetailInventory.get_inventory()
-    catalog = list(map(lambda item: item.convert_to_catalog_item(), inventory))
-
+    catalog = RetailInventory.get_catalog() 
     return catalog
