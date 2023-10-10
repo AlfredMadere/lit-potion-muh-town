@@ -94,10 +94,10 @@ class Cart:
         invoice = Invoice.create(None, self.id, invoice_description)
         Transaction.create(adjustment_result['total_gold_paid'], invoice.id)
         self.set_checked_out()
-
+        print("checkout_result: ", checkout_result)
+        return checkout_result
       except Exception as error:
         raise Exception("Transaction Failed: Could not adjust inventory", error)
-      return checkout_result
     except Exception as error:
       raise Exception("ERROR: unable to checkout cart", error) 
     
