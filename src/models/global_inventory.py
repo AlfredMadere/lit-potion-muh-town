@@ -85,7 +85,7 @@ class GlobalInventory:
     def get_inventory():
         try:
             total_ml = 0
-            sql_to_execute = text(f"SELECT num_ml FROM {WholesaleInventory.table_name}")
+            sql_to_execute = text(f"SELECT num_ml_delta FROM {WholesaleInventory.table_name}")
             with db.engine.begin() as connection:
                 result = connection.execute(sql_to_execute)
                 rows = result.fetchall()
