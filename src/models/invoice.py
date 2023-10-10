@@ -12,7 +12,7 @@ class Invoice:
 
 
   @staticmethod
-  def create(wholesale_inventory_id: int | None , cart_id: int | None, description: str):
+  def create(wholesale_inventory_id: int | None , cart_id: int | None, description: str) -> "Invoice":
     try:
       sql_to_execute = text(f"INSERT INTO {Invoice.table_name} (wholesale_inventory_id, cart_id, description) VALUES (:wholesale_inventory_id, :cart_id, :description) RETURNING id, wholesale_inventory_id, cart_id, description")
       with db.engine.begin() as connection:

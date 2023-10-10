@@ -67,3 +67,16 @@ class PotionType:
       print("unable to find resize type: ", error)
       raise Exception("ERROR: unable to find resize type", error)
 
+  @staticmethod
+  def find_by_sku(sku: str):
+    try:
+      sql_to_execute = text(f"SELECT id, name, sku, type, score FROM {PotionType.table_name} WHERE sku = :sku")
+      with db.engine.begin() as connection:
+        result = connection.execute(sql_to_execute, {"sku": sku})
+        row = result.fetchone()
+        return PotionType(row[0], row[1], row[2], row[3], row[4])
+    except Exception as error:
+      print("unable to find resize type: ", error)
+      raise Exception("ERROR: unable to find resize type", error)
+
+

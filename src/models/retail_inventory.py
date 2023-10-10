@@ -6,6 +6,7 @@ import json
 from pydantic import BaseModel
 from .transaction import Transaction
 from .potion_type import PotionType
+from .cart_item import CartItemM
 
 class PotionInventory(BaseModel):
     potion_type: list[int]
@@ -160,7 +161,7 @@ class RetailInventory:
 
 
   @staticmethod
-  def items_available(items: dict[str, int]):
+  def items_available(items: list[CartItemM]):
     inventory = RetailInventory.get_inventory()
 
     for item_sku, quantity in items.items():
@@ -188,23 +189,23 @@ class RetailInventory:
 
   #FIXME: hardcoded potion price 
   @staticmethod
-  def adjust_inventory(items: dict[str, int]):
+  def adjust_inventory(items: list[CartItemM]):
         #update the specific row in the table self.id
         try:
           total_gold_paid = 0
           total_potions_bought = 0
-          for item_sku, quantity in items.items():
+          for item in items:
             #FIXME: hardcoded potion price
-            total_gold_paid += RetailInventory.potion_price*quantity
-            total_potions_bought += quantity
-            sql_to_execute = text(f"UPDATE {RetailInventory.table_name} SET quantity = quantity - :quantity WHERE sku = :sku")
+            potion_price = RetailInventory.get_potion_price(item.potion_type_id)
+            total_gold_paid += potion_price*item.quantity
+            total_potions_bought += item.quantity
+            sql_to_execute = text(f"INSERT INTO {RetailInventory.table_name} (potion_type_id, quantity_delta, price_delta) VALUES (:potion_type_id, :quantity_delta, :price_delta) RETURNING id, potion_type_id, quantity_delta, price_delta")
             with db.engine.begin() as connection:
-              connection.execute(sql_to_execute, {"quantity": quantity, "sku": item_sku})
-          Transaction.create(None, total_gold_paid, f'payment of {total_gold_paid} for {items} potions') 
+              connection.execute(sql_to_execute, {"potion_type_id": item.potion_type_id, "quantity_delta": item.quantity + -1, "price_delta": 0})
+          return {"total_potions_bought": total_potions_bought, "total_gold_paid": total_gold_paid}
         except: 
             raise Exception("Could not adjust inventory")
 
-        return {"total_potions_bought": total_potions_bought, "total_gold_paid": total_gold_paid}
   
   @staticmethod
   def create(potion_type_id: int, quantity_delta: int, price_delta: int):
