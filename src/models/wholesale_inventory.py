@@ -75,7 +75,7 @@ class WholesaleInventory:
       potion_stock = WholesaleInventory.get_stock(catalog_item.potion_type)
       current_wholesale_materials[hashable_potion_type] = potion_stock
       #TODO: implement more complex decision making here
-      if (catalog_item.price <= available_balance and catalog_item.price <= 150 and potion_stock < 2000):
+      if (catalog_item.price <= available_balance and catalog_item.price <= 300 and potion_stock < 2000):
         available_balance -= catalog_item.price
         current_wholesale_materials[hashable_potion_type] = catalog_item.ml_per_barrel
         wholesale_plan.append({

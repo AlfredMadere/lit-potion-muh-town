@@ -45,3 +45,13 @@ class CartItemM:
     except Exception as error:
       print("unable to get potion type: ", error)
       raise Exception("ERROR: unable to get potion type", error)
+    
+
+  def get_item_string(self):
+    try:
+      self.get_potion_type()
+      generated_string = f"ITEM: id: '{self.id}', \n POTION_TYPE: quantity: {self.quantity}, name: '{self.potion_type.name}', type: {self.potion_type.type}"
+      return generated_string
+    except Exception as error:
+      print("unable to get item string: ", error)
+      raise Exception("ERROR: unable to get item string", error)
