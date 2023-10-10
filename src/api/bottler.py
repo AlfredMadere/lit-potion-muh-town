@@ -32,7 +32,7 @@ def get_bottle_plan():
     # green potion to add.
     # Expressed in integers from 1 to 100 that must sum up to 100.
 
-    # Initial logic: bottle all barrels into red potions.
+    #UNIT TESTED AND PASSING
     bottlerPlan = WholesaleInventory.get_bottler_plan()
 
     return bottlerPlan

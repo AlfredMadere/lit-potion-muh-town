@@ -16,6 +16,7 @@ router = APIRouter(
 def post_deliver_barrels(barrels_delivered: list[Barrel]):
     """ """
     print("barrels/deliver: barrels_delivered -> ", barrels_delivered)
+    #KINDA UNIT TESTED
     return WholesaleInventory.accept_barrels_delivery(barrels_delivered)
 
 
@@ -25,6 +26,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     """ """
     print("barrels/plan: wholesale_catalog -> ", wholesale_catalog)
 
+    #UNIT TESTED AND PASSING
     wholesale_plan = WholesaleInventory.get_wholesale_plan(wholesale_catalog)
 
     return wholesale_plan
