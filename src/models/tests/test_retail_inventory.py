@@ -1,7 +1,9 @@
 
 import logging
-from ..retail_inventory import RetailInventory
+from ..retail_inventory import RetailInventory, PotionInventory
 from ..potion_type import PotionType
+from ..wholesale_inventory import WholesaleInventory, Barrel
+from ..transaction import Transaction
 def test_get_catalog():
   RetailInventory.reset()
   PotionType.reset()
@@ -29,4 +31,31 @@ def test_get_catalog():
       'potion_type': potion_type2.type 
   },
   ]
+
+
+def test_accept_potions_delivery():
+  potions_delivered = [
+    PotionInventory(
+      potion_type=[100, 0, 0, 0],
+      quantity=1
+    )
+  ]
+  barrels_delivery = [
+    Barrel(sku="red", ml_per_barrel=500, potion_type=[1, 0, 0, 0], price=100, quantity=1),
+    Barrel(sku="red", ml_per_barrel=500, potion_type=[1, 0, 0, 0], price=100, quantity=2)
+]
+  Transaction.reset()
+  RetailInventory.reset()
+  WholesaleInventory.reset()
+  PotionType.create("test namesf", "test skusdf", [100, 0, 0, 0], 0)
+  Transaction.create(500, None)
+
+  WholesaleInventory.accept_barrels_delivery(barrels_delivery)
+  RetailInventory.accept_potions_delivery(potions_delivered)
+  red_stock = WholesaleInventory.get_stock([1, 0, 0, 0])
+  assert red_stock == 1400
+
+
+
+
   
