@@ -160,32 +160,46 @@ class RetailInventory:
       raise Exception("ERROR: unable to get potion price", error) 
 
 
-  @staticmethod
-  def items_available(items: list[CartItemM]):
-    inventory = RetailInventory.get_inventory()
+  # @staticmethod
+  # def items_available(items: list[CartItemM]):
+  #   inventory = RetailInventory.get_inventory()
 
-    for item_sku, quantity in items.items():
-      print("Inventory:", [item.sku for item in inventory])
-      print("Looking for SKU:", item_sku)
-      print("Type of SKUs in inventory:", [type(item.sku) for item in inventory])
-      print("Type of target SKU:", type(item_sku))
+  #   for item_sku, quantity in items.items():
+  #     print("Inventory:", [item.sku for item in inventory])
+  #     print("Looking for SKU:", item_sku)
+  #     print("Type of SKUs in inventory:", [type(item.sku) for item in inventory])
+  #     print("Type of target SKU:", type(item_sku))
 
 
-      #get the inventory item with the same sku as the item_sku
-      inventory_item = None
-      for item in inventory:
-        print("item.sku:", item.sku)
-        print("item_sku:", item_sku)
-        if f'{item.sku.strip()}' == f'{item_sku.strip()}':
-          inventory_item = item
-          break      
-      print ("inventory item: ", inventory_item)
-      if( inventory_item is None):
-        raise Exception("Item not found")
-      if inventory_item.quantity < quantity:
-        raise Exception("Not enough items available")
-    return True  
+  #     #get the inventory item with the same sku as the item_sku
+  #     inventory_item = None
+  #     for item in inventory:
+  #       print("item.sku:", item.sku)
+  #       print("item_sku:", item_sku)
+  #       if f'{item.sku.strip()}' == f'{item_sku.strip()}':
+  #         inventory_item = item
+  #         break      
+  #     print ("inventory item: ", inventory_item)
+  #     if( inventory_item is None):
+  #       raise Exception("Item not found")
+  #     if inventory_item.quantity < quantity:
+  #       raise Exception("Not enough items available")
+  #   return True  
   
+
+  def num_potion_type_available(id: int):
+    try:
+       sql_to_execute = text(f"SELECT quantity_delta FROM {RetailInventory.table_name} WHERE potion_type_id = :potion_type_id")
+       total_potions = 0
+       with db.engine.begin() as connection:
+         result = connection.execute(sql_to_execute, {"potion_type_id": id})
+         rows = result.fetchall()
+         for row in rows:
+           total_potions += row[0] 
+       return total_potions
+    except Exception as error:
+      print("unable to get resize stock: ", error)
+      raise Exception("ERROR: unable to get resize stock", error)
 
   #FIXME: hardcoded potion price 
   @staticmethod
@@ -201,7 +215,7 @@ class RetailInventory:
             total_potions_bought += item.quantity
             sql_to_execute = text(f"INSERT INTO {RetailInventory.table_name} (potion_type_id, quantity_delta, price_delta) VALUES (:potion_type_id, :quantity_delta, :price_delta) RETURNING id, potion_type_id, quantity_delta, price_delta")
             with db.engine.begin() as connection:
-              connection.execute(sql_to_execute, {"potion_type_id": item.potion_type_id, "quantity_delta": item.quantity + -1, "price_delta": 0})
+              connection.execute(sql_to_execute, {"potion_type_id": item.potion_type_id, "quantity_delta": item.quantity * -1, "price_delta": 0})
           return {"total_potions_bought": total_potions_bought, "total_gold_paid": total_gold_paid}
         except: 
             raise Exception("Could not adjust inventory")

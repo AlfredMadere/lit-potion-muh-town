@@ -1,6 +1,6 @@
 from sqlalchemy import text
 from src import database as db
-from .retail_inventory import RetailInventory
+# from .retail_inventory import RetailInventory
 from .potion_type import PotionType
 
 class CartItemM:
@@ -23,12 +23,13 @@ class CartItemM:
       raise Exception("ERROR: unable to create cart item", error)
 
 
-  def is_available(self):
+  def is_available(self, catalog: list):
     try:
-      catalog = RetailInventory.get_catalog()
       self.get_potion_type()
-      catalog_potion = [potion for potion in catalog if potion["potion_type"] == self.potion_type.type]
-      if self.quantity <= catalog_potion["quantity"]:
+      catalog_potion = next((potion for potion in catalog if potion["potion_type"] == self.potion_type.type), None)
+      if catalog_potion is None:
+        raise Exception("ERROR: unable to check if item is available because we didn't find it in the catalog")
+      if self.quantity > catalog_potion["quantity"]:
         return True
       else:
         return False

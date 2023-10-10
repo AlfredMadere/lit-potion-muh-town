@@ -31,8 +31,19 @@ class Cart:
     self.id = id
     self.customer_id = customer_id
     self.checked_out = checked_out
-    self.items = None
+    self._items = None
 
+
+  @staticmethod
+  def reset():
+    try:
+      sql_to_execute = text(f"DELETE FROM {Cart.table_name}")
+      with db.engine.begin() as connection:
+        connection.execute(sql_to_execute)
+      return "OK"
+    except Exception as error:
+        print("unable to reset cart table: ", error)
+        raise Exception("ERROR: unable to reset cart table", error)
   @staticmethod
   def find(id: int):
     try:
@@ -91,9 +102,10 @@ class Cart:
   def check_item_availability(self):
     try:
       items = self.get_items()
+      print("items: ", items)
       unavailable_items = []
       for item in items:
-        available = item.is_available()
+        available = item.is_available(RetailInventory.get_catalog())
         if available:
           pass
         else:
@@ -111,22 +123,26 @@ class Cart:
       potion_type_id = PotionType.find_by_sku(item_sku).id
       #FIXME: when you create a cart item it should also remove it from the retail_inventory until the cart is voided
       cart_item = CartItemM.create(self.id, potion_type_id, quantity)
-    except:
-      raise Exception("ERROR: unable to set item quantity")
+      if self.items is None:
+        self.items = []
+      self.items.append(cart_item)
+    except Exception as error:
+      print("unable to set item quantity: ", error)
+      raise Exception("ERROR: unable to set item quantity", error)
 
   def get_items(self):
     try:
       items: list[CartItemM] = []
-      sql_to_execute = text(f"SELECT * FROM {CartItemM.table_name} WHERE cart_id = {self.id}")
+      sql_to_execute = text(f"SELECT id, cart_id, potion_type_id, quantity FROM {CartItemM.table_name} WHERE cart_id = {self.id}")
       with db.engine.begin() as connection:
         result = connection.execute(sql_to_execute)
         rows = result.fetchall()
         for row in rows:
           items.append(CartItemM(row[0], row[1], row[2], row[3]))
-      
       self.items = items
       return items    
     except Exception as error:
+      print("unable to get cart items: ", error)
       raise Exception("ERROR: unable to get cart items", error)
 
   def set_checked_out(self):
@@ -136,4 +152,14 @@ class Cart:
         connection.execute(sql_to_execute)
     except Exception as error:
       raise Exception("ERROR: unable to set cart checked out", error)
+  
+  @property
+  def items(self) -> list[CartItemM]:
+    items = self.get_items()
+    self._items = items
+    return self._items
+  
+  @items.setter
+  def items(self, value):
+    self._items = value
 
