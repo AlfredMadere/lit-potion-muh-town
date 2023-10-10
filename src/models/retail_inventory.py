@@ -43,7 +43,7 @@ class RetailInventory:
       raise Exception("ERROR: unable to get total potions", error)
 
   @staticmethod
-  def get_catalog():
+  def get_catalog() -> List[PotionInventory]:
     # Get all the rows from the catalog table and return them as an array of objects
     # Add up all the quantity and price_deltas for each potion_type_id
     sql_to_execute = text("SELECT id, potion_type_id, quantity_delta, price_delta FROM retail_inventory")
@@ -86,10 +86,10 @@ class RetailInventory:
   @staticmethod
   def get_total_potions():
     try:
-      inventory = RetailInventory.get_inventory()
+      inventory = RetailInventory.get_catalog()
       total_potions = 0
       for item in inventory:
-        total_potions += item.quantity
+        total_potions += item["quantity"]
       return total_potions
     except Exception as error:
       print("unable to get total potions: ", error)

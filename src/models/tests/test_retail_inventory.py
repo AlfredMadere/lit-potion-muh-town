@@ -36,24 +36,27 @@ def test_get_catalog():
 def test_accept_potions_delivery():
   potions_delivered = [
     PotionInventory(
-      potion_type=[100, 0, 0, 0],
+      potion_type=[90, 10, 0, 0],
       quantity=1
     )
   ]
   barrels_delivery = [
     Barrel(sku="red", ml_per_barrel=500, potion_type=[1, 0, 0, 0], price=100, quantity=1),
-    Barrel(sku="red", ml_per_barrel=500, potion_type=[1, 0, 0, 0], price=100, quantity=2)
+    Barrel(sku="green", ml_per_barrel=500, potion_type=[0, 1, 0, 0], price=100, quantity=2)
 ]
   Transaction.reset()
   RetailInventory.reset()
   WholesaleInventory.reset()
   PotionType.create("test namesf", "test skusdf", [100, 0, 0, 0], 0)
+  PotionType.create("testwww namesf", "djstest skusdf", [90, 10, 0, 0], 0)
   Transaction.create(500, None)
 
   WholesaleInventory.accept_barrels_delivery(barrels_delivery)
   RetailInventory.accept_potions_delivery(potions_delivered)
   red_stock = WholesaleInventory.get_stock([1, 0, 0, 0])
-  assert red_stock == 1400
+  green_stock = WholesaleInventory.get_stock([0, 1, 0, 0])
+  assert red_stock == 410 
+  assert green_stock == 990
 
 
 
