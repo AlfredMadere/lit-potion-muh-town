@@ -13,5 +13,6 @@ def get_catalog():
     Each unique item combination must have only a single price.
     """
     # Can return a max of 20 items.
+    #UNIT TESTED AND PASSING
     catalog = RetailInventory.get_catalog() 
     return catalog

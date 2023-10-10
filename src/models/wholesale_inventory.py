@@ -6,6 +6,7 @@ from threading import Lock
 import json
 from pydantic import BaseModel
 from .potion_type import PotionType
+from .invoice import Invoice
 
 lock = Lock()
 
@@ -101,29 +102,27 @@ class WholesaleInventory:
   @staticmethod
   def accept_barrels_delivery (barrels_delivered: list[Barrel]):
     try:
-      with lock:
-        for barrel in barrels_delivered:
-          #FIXME: issue with 
-          if (barrel.price * barrel.quantity > Transaction.get_current_balance()):
-              print("not enough gold to pay for delivery, may have processed a partial delivery")
-              return "ERROR"
-          response = WholesaleInventory.add_to_inventory(barrel)
-          if (response == "ERROR"):
+      for barrel in barrels_delivered:
+        #FIXME: issue with 
+        if (barrel.price * barrel.quantity > Transaction.get_current_balance()):
+            print("not enough gold to pay for delivery, may have processed a partial delivery")
             return "ERROR"
-          delta = barrel.quantity * barrel.price * -1
-          Transaction.create(None, delta, f'payment of {delta} for delivery of {barrel.quantity} {barrel.sku} barrels of type {barrel.potion_type}') #flush this out
-
+        wholesale_entry = WholesaleInventory.add_to_inventory(barrel)
+        gold_balance_delta = barrel.quantity * barrel.price * -1
+        invoice = Invoice.create(wholesale_entry.id, None, f'payment of {gold_balance_delta} for delivery of {barrel.quantity} {barrel.sku} barrels of type {barrel.potion_type}')
+        Transaction.create(gold_balance_delta, invoice.id)
       return "OK"
     except Exception as error:
         print("unable to accept barrel delivery things may be out of sync due to no roleback: ", error)
-        return "ERROR"
+        raise Exception("ERROR: unable to accept barrel delivery", error)
     
   def add_to_inventory(barrel: Barrel):
     try:
       with db.engine.begin() as connection:
-        sql_to_execute = text(f"INSERT INTO {WholesaleInventory.table_name} (sku, type, num_ml_delta) VALUES (:sku, :type, :num_ml_delta)")
-        connection.execute(sql_to_execute, {"sku": barrel.sku, "type": barrel.potion_type, "num_ml_delta": barrel.quantity * barrel.ml_per_barrel})
-      return 'OK'
+        sql_to_execute = text(f"INSERT INTO {WholesaleInventory.table_name} (sku, type, num_ml_delta) VALUES (:sku, :type, :num_ml_delta) RETURNING id, sku, type, num_ml_delta")
+        result = connection.execute(sql_to_execute, {"sku": barrel.sku, "type": barrel.potion_type, "num_ml_delta": barrel.quantity * barrel.ml_per_barrel})
+        row = result.fetchone()
+        return WholesaleInventory(row[0], row[1], row[2], row[3])
     except Exception as error:
         print("unable to add to inventory: ", error)
         raise Exception("ERROR: unable to add to inventory", error)
