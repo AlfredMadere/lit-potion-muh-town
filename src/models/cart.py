@@ -86,11 +86,13 @@ class Cart:
         if not self.items:
           raise Exception("Cart could not retrieve items")
         adjustment_result = RetailInventory.adjust_inventory(self.items)
+        checkout_result['total_gold_paid'] = adjustment_result['total_gold_paid']
+        checkout_result['total_potions_bought'] = adjustment_result['total_potions_bought']
         #pickup here: figure how how to create the invioces and transactions for a checkout 
         #TODO: make better invoice description by adding a way to get item string
-        invoice_description = f"payment of {adjustment_result['total_gold_paid']} for {adjustment_result['total_potions_bought']} items. Items were: {self.items}"
+        invoice_description = f"payment of {adjustment_result['total_gold_paid']} for {adjustment_result['total_potions_bought']} items. Items were: {self.get_cart_items_string()}"
         invoice = Invoice.create(None, self.id, invoice_description)
-        Transaction.create(adjustment_result['total_gold_paid'] * -1, invoice.id)
+        Transaction.create(adjustment_result['total_gold_paid'], invoice.id)
         self.set_checked_out()
 
       except Exception as error:
@@ -98,6 +100,18 @@ class Cart:
       return checkout_result
     except Exception as error:
       raise Exception("ERROR: unable to checkout cart", error) 
+    
+
+  def get_cart_items_string(self):
+    try:
+      generated_string = ""
+      items = self.get_items()
+      for item in items:
+        generated_string += item.get_item_string()
+      return generated_string
+    except Exception as error:
+      print("unable to get cart items string: ", error)
+      raise Exception("ERROR: unable to get cart items string", error)
 
   def check_item_availability(self):
     try:
