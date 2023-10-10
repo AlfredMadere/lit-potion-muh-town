@@ -7,7 +7,7 @@ class Customer:
     self.str = str 
 
   @staticmethod
-  def upsert(customer_str: str):
+  def upsert(customer_str: str) -> "Customer":
     try: 
       sql_to_execute = text(f'SELECT id, str FROM {Customer.table_name} WHERE str = :customer_str')
       with db.engine.begin() as connection:
@@ -24,3 +24,29 @@ class Customer:
       print("unable to upsert customer: ", error)
       raise Exception("ERROR: unable to upsert customer", error)
 
+  
+  @staticmethod
+  def reset():
+    try:
+      sql_to_execute = text(f"DELETE FROM {Customer.table_name}")
+      with db.engine.begin() as connection:
+        connection.execute(sql_to_execute)
+      return "OK"
+    except Exception as error:
+      print("unable to reset customer table: ", error)
+      raise Exception("ERROR: unable to reset customer table", error)
+  
+
+  @staticmethod
+  def find(id: int):
+    try:
+      sql_to_execute = text(f"SELECT id, str FROM {Customer.table_name} WHERE id = {id}")
+      with db.engine.begin() as connection:
+        result = connection.execute(sql_to_execute)
+        row = result.fetchone()
+        if row is None:
+          raise Exception("Customer not found")
+        return Customer(row[0], row[1])
+    except Exception as error:
+      print("unable to find customer: ", error)
+      raise Exception("ERROR: unable to find customer", error)
