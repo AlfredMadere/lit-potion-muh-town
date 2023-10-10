@@ -75,8 +75,7 @@ def search_orders(
 def create_cart(new_cart: NewCart):
     #return a unique cart id
     """ """
-
-    cart = Cart(new_cart)
+    cart = Cart.new_cart(new_cart)
 
     return {"cart_id": cart.id}
 
@@ -88,19 +87,14 @@ def get_cart(cart_id: int):
 
     return {}
 
-
-
-
-
-
 @router.post("/{cart_id}/items/{item_sku}")
 def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     #do we just set this to one? or do we set it to the max possible? 
     #when stuff is in the cart is it reserved for them? should it be taken out of the db?
     """ """
 
-    cart = Cart.get_cart(cart_id)
-    cart.set_item_quantity(item_sku, cart_item)
+    cart = Cart.find(cart_id)
+    cart.set_item_quantity(item_sku, cart_item.quantity)
 
     return "OK"
 
@@ -111,5 +105,5 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
 def checkout(cart_id: int, cart_checkout: CartCheckout):
     """ """
     #when you checkout 
-    cart = Cart.get_cart(cart_id) 
+    cart = Cart.find(cart_id) 
     return cart.checkout(cart_checkout)
