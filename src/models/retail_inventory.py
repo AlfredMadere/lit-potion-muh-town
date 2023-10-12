@@ -70,7 +70,7 @@ class RetailInventory:
             # Query potiontype table for the type name and sku
             # Assuming you have a PotionType class with a get_potion_type function that retrieves the name and sku based on the potion_type_id
             potion_type = PotionType.find(potion_type_id)
-            if totals['quantity'] == 0:
+            if totals['quantity'] == 0 or inventory.__len__() >= 6:
                 continue
             inventory.append({
                 'sku': potion_type.sku,
