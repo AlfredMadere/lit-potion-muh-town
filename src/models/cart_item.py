@@ -55,3 +55,16 @@ class CartItemM:
     except Exception as error:
       print("unable to get item string: ", error)
       raise Exception("ERROR: unable to get item string", error)
+
+
+  @staticmethod
+  def reset():
+    try:
+      sql_to_execute = text(f"DELETE FROM {CartItemM.table_name}")
+      with db.engine.begin() as connection:
+        connection.execute(sql_to_execute)
+      return "OK"
+    except Exception as error:
+      print("unable to reset cart item: ", error)
+      raise Exception("ERROR: unable to reset cart item", error)
+    

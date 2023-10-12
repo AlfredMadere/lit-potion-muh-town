@@ -7,6 +7,10 @@ from ..models.retail_inventory import RetailInventory
 from ..models.transaction import Transaction
 from ..models.cart import Cart
 from ..models.wholesale_inventory import WholesaleInventory
+from ..models.customer import Customer
+from ..models.invoice import Invoice
+from ..models.cart_item import CartItemM
+
 
 
 router = APIRouter(
@@ -21,11 +25,12 @@ def reset():
     Reset the game state. Gold goes to 100, all potions are removed from
     inventory, and all barrels are removed from inventory. Carts are all reset.
     """
-
+    Cart.reset()
+    Customer.reset()
+    Invoice.reset()
     WholesaleInventory.reset()
     RetailInventory.reset() 
     Transaction.reset()
-    Cart.delete_all_carts()
 
     return "OK"
 
