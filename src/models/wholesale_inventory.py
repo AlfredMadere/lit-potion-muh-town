@@ -100,13 +100,28 @@ class WholesaleInventory:
         raise Exception("ERROR: unable to get potion stock", error) 
     
   @staticmethod
+  def check_barrels_delivery_payable(barrels_delivered: list[Barrel]):
+    try:
+      total_price = 0
+      for barrel in barrels_delivered:
+        total_price += barrel.price * barrel.quantity
+      current_balance = Transaction.get_current_balance()
+      if current_balance < total_price:
+        raise Exception("not enough gold to pay for delivery, not attempting to accept delivery. barrels/plan is wrong or there is a race condition present.")
+      return "OK"
+    except Exception:
+      raise
+    
+  @staticmethod
   def accept_barrels_delivery (barrels_delivered: list[Barrel]):
     try:
+      #check if we can pay for the whole delivery
+      WholesaleInventory.check_barrels_delivery_payable(barrels_delivered)
       for barrel in barrels_delivered:
         #FIXME: issue with 
         if (barrel.price * barrel.quantity > Transaction.get_current_balance()):
             print("not enough gold to pay for delivery, may have processed a partial delivery")
-            return "ERROR"
+            raise Exception("ERROR: not enough gold to pay for barrel, may have processed a partial delivery")
         wholesale_entry = WholesaleInventory.add_to_inventory(barrel)
         gold_balance_delta = barrel.quantity * barrel.price * -1
         invoice = Invoice.create(wholesale_entry.id, None, f'payment of {gold_balance_delta} for delivery of {barrel.quantity} {barrel.sku} barrels of type {barrel.potion_type}')
