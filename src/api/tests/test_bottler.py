@@ -22,21 +22,17 @@ def call_reset():
   return response.status_code == 200
 
 @pytest.mark.skipif(os.environ.get('ENV') != 'DEV', reason="Only run in dev")
-def test_barrels_plan():
+def test_bottler_plan():
   assert call_reset()
-  endpoint = "/barrels/plan/"
+  endpoint = "/bottler/plan/"
   url = base_route + endpoint
-  request_body = load_fixture("wholesale_catalog_0.json")
-
-  response = requests.post(url, headers=headers, data=request_body)
+  response = requests.post(url, headers=headers)
   assert response.status_code == 200, "Should return status code 200"
-  expected_plan = [
-  {
-    "sku": "SMALL_RED_BARREL",
-    "quantity": 1
-  }
-]
+  expected_plan = []
   assert json.loads(response.content) == json.loads(json.dumps(expected_plan)), "Should return correct plan"
+  
+
+
   
 @pytest.mark.skipif(os.environ.get('ENV') != 'DEV', reason="Only run in dev")
 def test_single_delivery():
