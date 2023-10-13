@@ -78,10 +78,6 @@ class Cart:
       checkout_result = {}
       if self.checked_out:
         raise Exception("Cart already checked out")
-      try:
-        self.check_item_availability()
-      except Exception as error:
-        raise Exception("Transaction Failed: Not enough items available", error)
       try: 
         if not self.items:
           raise Exception("Cart could not retrieve items")
@@ -113,6 +109,7 @@ class Cart:
       print("unable to get cart items string: ", error)
       raise Exception("ERROR: unable to get cart items string", error)
 
+  #depricated
   def check_item_availability(self):
     try:
       items = self.get_items()
