@@ -45,39 +45,21 @@ class RetailInventory:
 
   @staticmethod
   def get_catalog() -> List[PotionInventory]:
-    # Get all the rows from the catalog table and return them as an array of objects
-    # Add up all the quantity and price_deltas for each potion_type_id
-    sql_to_execute = text("SELECT id, potion_type_id, quantity_delta, price_delta FROM retail_inventory")
+    # Use a single SQL query to fetch all rows from the current_catalog view
+    sql_to_execute = text('SELECT potion_type, potion_name, potion_sku, price, available_quantity FROM "current_catalog" WHERE available_quantity > 0 LIMIT 6')
     inventory = []
+    
     with db.engine.begin() as connection:
         result = connection.execute(sql_to_execute)
         rows = result.fetchall()
-        potion_type_totals = {}
+        
         for row in rows:
-            potion_type_id = row[1]
-            quantity_delta = row[2]
-            price_delta = row[3]
-            if potion_type_id in potion_type_totals:
-                potion_type_totals[potion_type_id]['quantity'] += quantity_delta
-                potion_type_totals[potion_type_id]['price'] += price_delta
-            else:
-                potion_type_totals[potion_type_id] = {
-                    'quantity': quantity_delta,
-                    'price': price_delta
-                }
-
-        for potion_type_id, totals in potion_type_totals.items():
-            # Query potiontype table for the type name and sku
-            # Assuming you have a PotionType class with a get_potion_type function that retrieves the name and sku based on the potion_type_id
-            potion_type = PotionType.find(potion_type_id)
-            if totals['quantity'] == 0 or inventory.__len__() >= 6:
-                continue
             inventory.append({
-                'sku': potion_type.sku,
-                'name': potion_type.name,
-                'quantity': totals['quantity'],
-                'price': totals['price'],
-                'potion_type': potion_type.type 
+                'sku': row[2],
+                'name': row[1],
+                'quantity': row[4],
+                'price': row[3],
+                'potion_type': row[0]
             })
 
     return inventory
