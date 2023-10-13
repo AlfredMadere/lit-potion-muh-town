@@ -23,16 +23,17 @@ class CartItemM:
       raise Exception("ERROR: unable to create cart item", error)
 
 
+ #Depricated
   def is_available(self, catalog: list):
     try:
       self.get_potion_type()
       catalog_potion = next((potion for potion in catalog if potion["potion_type"] == self.potion_type.type), None)
       if catalog_potion is None:
         raise Exception("ERROR: unable to check if item is available because we didn't find it in the catalog")
-      if self.quantity > catalog_potion["quantity"]:
-        return True
-      else:
+      if self.quantity <= catalog_potion["quantity"]:
         return False
+      else:
+        return True
     except Exception as error:
       print("unable to check if item is available: ", error)
       raise Exception("ERROR: unable to check if item is available", error)

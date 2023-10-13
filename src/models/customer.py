@@ -38,7 +38,7 @@ class Customer:
   
 
   @staticmethod
-  def find(id: int):
+  def find(id: int) -> "Customer":
     try:
       sql_to_execute = text(f"SELECT id, str FROM {Customer.table_name} WHERE id = {id}")
       with db.engine.begin() as connection:

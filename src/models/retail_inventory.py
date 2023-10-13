@@ -204,21 +204,41 @@ class RetailInventory:
   #FIXME: hardcoded potion price 
   @staticmethod
   def adjust_inventory(items: list[CartItemM]):
-        #update the specific row in the table self.id
-        try:
-          total_gold_paid = 0
-          total_potions_bought = 0
-          for item in items:
-            #FIXME: hardcoded potion price
-            potion_price = RetailInventory.get_potion_price(item.potion_type_id)
-            total_gold_paid += potion_price*item.quantity
-            total_potions_bought += item.quantity
-            sql_to_execute = text(f"INSERT INTO {RetailInventory.table_name} (potion_type_id, quantity_delta, price_delta) VALUES (:potion_type_id, :quantity_delta, :price_delta) RETURNING id, potion_type_id, quantity_delta, price_delta")
-            with db.engine.begin() as connection:
-              connection.execute(sql_to_execute, {"potion_type_id": item.potion_type_id, "quantity_delta": item.quantity * -1, "price_delta": 0})
-          return {"total_potions_bought": total_potions_bought, "total_gold_paid": total_gold_paid}
-        except: 
-            raise Exception("Could not adjust inventory")
+    try:
+        total_gold_paid = 0
+        total_potions_bought = 0
+
+        with db.engine.begin() as connection:
+            for item in items:
+                # Check available inventory
+                sql_check_inventory = text(f"""
+                    SELECT SUM(quantity_delta) as available_inventory
+                    FROM {RetailInventory.table_name}
+                    WHERE potion_type_id = :potion_type_id
+                """)
+                result = connection.execute(sql_check_inventory, {"potion_type_id": item.potion_type_id})
+                available_inventory = result.fetchone()[0]
+
+                if available_inventory < item.quantity:
+                    raise Exception(f"Insufficient inventory for potion_type_id {item.potion_type_id}")
+
+                # Update inventory
+                potion_price = RetailInventory.get_potion_price(item.potion_type_id)
+                total_gold_paid += potion_price * item.quantity
+                total_potions_bought += item.quantity
+
+                sql_to_execute = text(f"""
+                    INSERT INTO {RetailInventory.table_name} (potion_type_id, quantity_delta, price_delta)
+                    VALUES (:potion_type_id, :quantity_delta, :price_delta)
+                    RETURNING id, potion_type_id, quantity_delta, price_delta
+                """)
+                connection.execute(sql_to_execute, {"potion_type_id": item.potion_type_id, "quantity_delta": item.quantity * -1, "price_delta": 0})
+
+        return {"total_potions_bought": total_potions_bought, "total_gold_paid": total_gold_paid}
+
+    except Exception as e:
+        raise Exception(f"Could not adjust inventory: {str(e)}")
+
 
   
   @staticmethod
