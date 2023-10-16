@@ -130,13 +130,14 @@ class Cart:
 
   def set_item_quantity(self, item_sku: str, quantity: int):
     try:
-      #Gonna trust that the customer won't request impossible stuff for now
       potion_type_id = PotionType.find_by_sku(item_sku).id
       #FIXME: when you create a cart item it should also remove it from the retail_inventory until the cart is voided
-      cart_item = CartItemM.create(self.id, potion_type_id, quantity)
-      if self.items is None:
-        self.items = []
-      self.items.append(cart_item)
+      quantity_available = RetailInventory.num_potion_type_available(potion_type_id)
+      if quantity_available < quantity:
+        raise Exception(f"Insufficient inventory for potion_type_id {potion_type_id}")
+      else:
+        CartItemM.create(self.id, potion_type_id, quantity)
+
     except Exception as error:
       print("unable to set item quantity: ", error)
       raise Exception("ERROR: unable to set item quantity", error)
@@ -163,6 +164,8 @@ class Cart:
         connection.execute(sql_to_execute)
     except Exception as error:
       raise Exception("ERROR: unable to set cart checked out", error)
+  
+
   
   @property
   def items(self) -> list[CartItemM]:

@@ -74,13 +74,6 @@ class GlobalInventory:
         return GlobalInventory.singleton
 
 
-    def get_inventory(self):
-        return {
-            "number_of_potions": self.num_red_potions,
-            "ml_in_barrels": self.num_red_ml,
-            "gold": self.gold,
-        }
-
     @staticmethod
     def get_inventory():
         try:

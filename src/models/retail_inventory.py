@@ -57,7 +57,7 @@ class RetailInventory:
             inventory.append({
                 'sku': row[2],
                 'name': row[1],
-                'quantity': row[4],
+                'quantity': min(row[4], 2), #limiting to selling two at a time to avoid this weird bullshit issue 
                 'price': row[3],
                 'potion_type': row[0]
             })
@@ -78,14 +78,6 @@ class RetailInventory:
       print("unable to get total potions: ", error)
       return "ERROR"
 
-  def convert_to_catalog_item(self):
-    return {
-      "sku": self.sku,
-      "name": self.name,
-      "quantity": self.quantity,
-      "price": self.price,
-      "potion_type": self.type
-    }
   @staticmethod
   def reset():
     try:
