@@ -57,7 +57,7 @@ class RetailInventory:
             inventory.append({
                 'sku': row[2],
                 'name': row[1],
-                'quantity': min(row[4], 2), #limiting to selling two at a time to avoid this weird bullshit issue 
+                'quantity': row[4], #limiting to selling two at a time to avoid this weird bullshit issue 
                 'price': row[3],
                 'potion_type': row[0]
             })
