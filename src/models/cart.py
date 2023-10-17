@@ -1,6 +1,5 @@
 
 from pydantic import BaseModel
-from .global_inventory import GlobalInventory
 from .retail_inventory import RetailInventory
 from sqlalchemy.sql import text
 from src import database as db

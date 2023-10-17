@@ -94,23 +94,30 @@ class RetailInventory:
   def accept_potions_delivery(potions_delivered: list[PotionInventory]):
     try:
       #check to see if there already exists an entry in the retailinventory with the same type as the potion delivered, if so then update the quantity, if not then create a new entry
-      for potion in potions_delivered:
-        with db.engine.begin() as connection:
-          sql_to_execute = text(f'SELECT id FROM {"potion_type"} WHERE type = :potion_type')
-          result = connection.execute(sql_to_execute, {"potion_type": potion.potion_type})
-          row = result.fetchone()
-          if row is None:
-             raise Exception("Potion type in delivery not found")
-          potion_type_id = row[0]
-          potion_type = PotionType.find(potion_type_id)
-          #get current price for potion type
-          current_potion_price = RetailInventory.get_potion_price(potion_type_id)
-          price_delta = RetailInventory.potion_price  
-          if current_potion_price is not None:
-            price_delta = 0
-          sql_to_execute = text(f'INSERT INTO {RetailInventory.table_name} (potion_type_id, quantity_delta, price_delta) VALUES (:potion_type_id, :quantity_delta, :price_delta)') 
-          result = connection.execute(sql_to_execute, {"potion_type_id": potion_type_id, "quantity_delta": potion.quantity, "price_delta": price_delta}) 
-          WholesaleInventory.use_potion_inventory(potion_type.type, potion.quantity)
+      with db.engine.begin() as connection:
+        for potion in potions_delivered:
+          #insert a row into the retail_inventory table with the same type as the potion delivered and the quantity_delta equal to the quantity of the potion delivered. the price_delta should be equal to the difference between the price of the potion as seen in the current_catalog view and the RetailInventory.potion_price
+          retail_inventory_query = text("""
+                    INSERT INTO retail_inventory (potion_type_id, quantity_delta, price_delta)
+                    SELECT pt.id, :quantity_delta, 
+                        :new_potion_price - COALESCE((SELECT price FROM "current_catalog" WHERE potion_type = pt.type), :new_potion_price)
+                    FROM potion_type pt
+                    WHERE pt.type = :potion_type
+                """)
+          connection.execute(retail_inventory_query, {'potion_type': potion.potion_type, 'quantity_delta': potion.quantity, 'new_potion_price': RetailInventory.potion_price})
+
+          wholesale_adjustment_rows = []
+          for i, ml in enumerate(potion.potion_type):
+            if ml > 0:
+                #FIXME: collapse into one query if this takes too long 
+                barrel_type_to_subtract_from = [0, 0, 0, 0]
+                barrel_type_to_subtract_from[i] = 1 if ml != 0 else 0
+                wholesale_adjustment_rows.append({"sku": "MIXING", "type": barrel_type_to_subtract_from, "num_ml_delta": potion.quantity * ml * -1})
+                wholesale_inventory_query = text("""
+                        INSERT INTO wholesale_inventory (sku, type, num_ml_delta)
+                        VALUES ('MIXING', :type, :num_ml_delta)
+                    """)
+                connection.execute(wholesale_inventory_query, {'type': barrel_type_to_subtract_from, 'num_ml_delta': ml * potion.quantity * -1})  # Assuming ml_needed is the amount of ml needed for this type
       return "OK"
     except Exception as error:
         print("unable to accept potion delivery things may be out of sync due to no roleback, check logs ", error)
