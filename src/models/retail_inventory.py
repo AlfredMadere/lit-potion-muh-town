@@ -100,7 +100,7 @@ class RetailInventory:
           retail_inventory_query = text("""
                     INSERT INTO retail_inventory (potion_type_id, quantity_delta, price_delta)
                     SELECT pt.id, :quantity_delta, 
-                        :new_potion_price - COALESCE((SELECT price FROM "current_catalog" WHERE potion_type = pt.type), :new_potion_price)
+                        :new_potion_price - COALESCE((SELECT price FROM "current_catalog" WHERE potion_type = pt.type), 0)
                     FROM potion_type pt
                     WHERE pt.type = :potion_type
                 """)
