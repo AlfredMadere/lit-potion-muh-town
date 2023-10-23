@@ -84,6 +84,10 @@ class WholesaleInventory:
         })
     return wholesale_plan
 
+
+  #TODO: need to update the plan logic in the following way
+  #Have a method that ranks potions by how likely they are to sell on the next tick. Have this method use the the current date_time, 
+
   @staticmethod
   def get_stock(potion_type: list[int]):
     try:
