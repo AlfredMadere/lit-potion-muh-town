@@ -2,6 +2,18 @@ from sqlalchemy import text
 from src import database as db
 # from .retail_inventory import RetailInventory
 from .potion_type import PotionType
+from sqlalchemy import create_engine, MetaData, Table, select, desc, asc, and_, or_
+
+
+
+def encrypt(cursor: str) -> str:
+    # Your encryption logic here
+    return cursor
+
+def decrypt(token: str) -> str:
+    # Your decryption logic here
+    return token 
+
 
 class CartItemM:
   table_name = "cart_item"
@@ -68,4 +80,71 @@ class CartItemM:
     except Exception as error:
       print("unable to reset cart item: ", error)
       raise Exception("ERROR: unable to reset cart item", error)
+
+  @staticmethod
+  def search(customer_name: str, potion_sku: str, search_page: str, sort_col: str, sort_order: str):
+    try:
+      cursor_value, cursor_id = decrypt(search_page).split("|") if search_page else (None, None)
+      metadata = MetaData()
+      order = Table('order', metadata, autoload_with=db.engine)
+
+      order_by_column = {
+        'customer_name': order.c.customer_name,
+        'item_sku': order.c.potion_sku,
+        'line_item_total': order.c.line_item_total,
+        'timestamp': order.c.created_at
+      }.get(sort_col)
+
+      sort_func = asc if sort_order == 'asc' else desc
     
+      stmt = (
+          select(order.c.customer_name, order.c.potion_sku, order.c.line_item_total, order.c.created_at)
+          .limit(5)
+          .order_by(sort_func(order_by_column), sort_func(order.c.line_item_id))
+      )
+
+      # if customer_name != "":
+      #     stmt = stmt.where(order.c.customer_name.ilike(f"%{customer_name}%"))
+      
+      # if potion_sku != "":
+      #     stmt = stmt.where(order.c.potion_sku.ilike(f"%{potion_sku}%"))
+
+
+      # if cursor_value and cursor_id:
+      #     operator = and_ if sort_order == 'asc' else or_
+      #     stmt = stmt.where(
+      #         operator(
+      #             order_by_column > cursor_value if sort_order == 'asc' else order_by_column < cursor_value,
+      #             and_(order_by_column == cursor_value, order.c.id > cursor_id if sort_order == 'asc' else order.c.id < cursor_id)
+      #         )
+      #     )
+    
+      results = []
+      prev_cursor, next_cursor = None, None
+
+      with db.engine.connect() as conn:
+          result = conn.execute(stmt)
+          
+          for row in result:
+              results.append({
+                  "line_item_id": row.line_item_id,
+                  "item_sku": row.potion_sku,
+                  "customer_name": row.customer_name,
+                  "line_item_total": row.line_item_total,
+                  "timestamp": row.created_at,
+              })
+
+          if results:
+              last_item = results[-1]
+              next_cursor = encrypt(f"{last_item[sort_col]}|{last_item['id']}")
+              first_item = results[0]
+              prev_cursor = encrypt(f"{first_item[sort_col]}|{first_item['id']}")
+          
+      return {
+          "previous": prev_cursor,
+          "next": next_cursor,
+          "results": results
+      }
+    except Exception as error:
+      print("unable to search cart items: ", error)
+      raise Exception("ERROR: unable to search cart items", error)
