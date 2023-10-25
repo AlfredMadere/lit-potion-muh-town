@@ -2,7 +2,7 @@ from sqlalchemy import text
 from src import database as db
 # from .retail_inventory import RetailInventory
 from .potion_type import PotionType
-from sqlalchemy import create_engine, MetaData, Table, select, desc, asc, and_, or_
+from sqlalchemy import create_engine, MetaData, Table, select, desc, asc, and_, or_, func
 
 
 
@@ -83,31 +83,35 @@ class CartItemM:
 
   @staticmethod
   def search(customer_name: str, potion_sku: str, search_page: str, sort_col: str, sort_order: str):
+    page_size = 5
     try:
-      cursor_value, cursor_id = decrypt(search_page).split("|") if search_page else (None, None)
+      offset = 0
+      if (search_page != ""):
+        offset = int(search_page)
       metadata = MetaData()
       order = Table('order', metadata, autoload_with=db.engine)
 
       order_by_column = {
-        'customer_name': order.c.customer_name,
+        'customer_name': order.c.customer_name, 
         'item_sku': order.c.potion_sku,
         'line_item_total': order.c.line_item_total,
         'timestamp': order.c.created_at
       }.get(sort_col)
 
       sort_func = asc if sort_order == 'asc' else desc
+      
     
       stmt = (
-          select(order.c.customer_name, order.c.potion_sku, order.c.line_item_total, order.c.created_at)
-          .limit(5)
-          .order_by(sort_func(order_by_column), sort_func(order.c.line_item_id))
+          select(order.c.line_item_id, order.c.potion_sku, order.c.customer_name,  order.c.line_item_total, order.c.created_at)
+          .limit(page_size)
+          .order_by(sort_func(order_by_column)).offset(offset)
       )
 
-      # if customer_name != "":
-      #     stmt = stmt.where(order.c.customer_name.ilike(f"%{customer_name}%"))
+      if customer_name != "":
+          stmt = stmt.where(order.c.customer_name.ilike(f"%{customer_name}%"))
       
-      # if potion_sku != "":
-      #     stmt = stmt.where(order.c.potion_sku.ilike(f"%{potion_sku}%"))
+      if potion_sku != "":
+          stmt = stmt.where(order.c.potion_sku.ilike(f"%{potion_sku}%"))
 
 
       # if cursor_value and cursor_id:
@@ -127,18 +131,22 @@ class CartItemM:
           
           for row in result:
               results.append({
-                  "line_item_id": row.line_item_id,
-                  "item_sku": row.potion_sku,
-                  "customer_name": row.customer_name,
-                  "line_item_total": row.line_item_total,
-                  "timestamp": row.created_at,
+                  "line_item_id": row[0],
+                  "item_sku": row[1],
+                  "customer_name": row[2],
+                  "line_item_total": row[3],
+                  "timestamp": row[4],
               })
 
+          count_stmt = select(func.count()).select_from(order)
+          total_records = conn.execute(count_stmt).scalar()
+
           if results:
-              last_item = results[-1]
-              next_cursor = encrypt(f"{last_item[sort_col]}|{last_item['id']}")
-              first_item = results[0]
-              prev_cursor = encrypt(f"{first_item[sort_col]}|{first_item['id']}")
+              next_cursor = f'{offset + page_size }'
+              if (offset + page_size) >= total_records:
+                next_cursor = None
+              prev_cursor = f'{offset - page_size if offset - page_size > 0 else 0}'
+
           
       return {
           "previous": prev_cursor,
