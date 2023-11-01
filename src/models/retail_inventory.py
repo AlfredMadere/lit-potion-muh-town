@@ -13,6 +13,7 @@ class PotionInventory(BaseModel):
     quantity: int
 
 
+
 class RetailInventory:
   table_name = "retail_inventory"
   potion_price = 50 

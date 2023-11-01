@@ -73,6 +73,7 @@ class Cart:
   
   def checkout(self, cart_checkout: CartCheckout):
     try: 
+      #TODO fix checkout method so it doesn't time out with large queue pool whatever that means
       #TODO: check if the payment string is valid
       checkout_result = {}
       if self.checked_out:
