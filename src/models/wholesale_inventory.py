@@ -29,17 +29,23 @@ class WholesaleInventory:
   @staticmethod
   def get_bottler_plan():
     try:
+      #change this to return a structure that includes the current number in inventory
       potion_types = PotionType.get_all()
+
       bottler_plan = []
       available_red = WholesaleInventory.get_stock([1, 0, 0, 0])
       available_green = WholesaleInventory.get_stock([0, 1, 0, 0])
       available_blue = WholesaleInventory.get_stock([0, 0, 1, 0])
       available_dark = WholesaleInventory.get_stock([0, 0, 0, 1])
+
+      potion_types.sort(key=lambda x: x.score, reverse=True)
+
       for potion_type in potion_types:
         max_mixable = WholesaleInventory.max_mixable(potion_type, [available_red, available_green, available_blue, available_dark])
         print("max mixable: ", max_mixable)
-        if (max_mixable > 0):
-          quantity = min(max_mixable, 5)
+        #check that we don't have too many before mixing more
+        if (max_mixable > 0 and potion_type.score >= 0):
+          quantity = min(max_mixable, 15)
           available_red -= quantity * potion_type.type[0]
           available_green -= quantity * potion_type.type[1]
           available_blue -= quantity * potion_type.type[2]
@@ -57,7 +63,7 @@ class WholesaleInventory:
   @staticmethod
   def max_mixable(potion_type: PotionType, available_ingredients: list[int]):
     #Not allowing more than 20 potions to be mixed at a time no matter what
-    limit_array = [20]
+    limit_array = [50]
     for i, potion_amount in enumerate(potion_type.type):
       if (potion_amount != 0):
         limit_array.append(math.floor(available_ingredients[i] / potion_amount))
@@ -74,7 +80,7 @@ class WholesaleInventory:
       hashable_potion_type = "_".join(map(str, catalog_item.potion_type))
       potion_stock = WholesaleInventory.get_stock(catalog_item.potion_type)
       current_wholesale_materials[hashable_potion_type] = potion_stock
-      #TODO: implement more complex decision making here
+      #TODO: implement only buy large barrels logic 
       if (catalog_item.price <= available_balance and catalog_item.price <= 500 and potion_stock < 5000):
         available_balance -= catalog_item.price
         current_wholesale_materials[hashable_potion_type] = catalog_item.ml_per_barrel
